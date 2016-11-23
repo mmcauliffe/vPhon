@@ -25,12 +25,12 @@ import re
 import os
 import argparse
 from string import punctuation
+import itertools
 
 
 def trans(word, dialect, glottal, pham, cao, palatals):
 
     # This looks ugly, but newer versions of python complain about "from x import *" syntax
-    print(dialect)
     if dialect == 'n':
         from .rules.north import onsets, nuclei, codas, tones, onglides, offglides, onoffglides, qu, gi
     elif dialect == 'c':
@@ -93,7 +93,10 @@ def trans(word, dialect, glottal, pham, cao, palatals):
         elif nucl in onglides and ons != 'kw': # if there is an onglide...
             nuc = onglides[nucl]                # modify the nuc accordingly
             if ons:                             # if there is an onset...
-                ons = ons+'w'                  # labialize it, but...
+                if isinstance(ons, list):
+                    ons = [x+'w' for x in ons]
+                else:
+                    ons = ons+'w'                  # labialize it, but...
             else:                               # if there is no onset...
                 ons = 'w'                      # add a labiovelar onset
 
@@ -146,7 +149,7 @@ def trans(word, dialect, glottal, pham, cao, palatals):
                 if cod == 'ŋ': cod = 'n'
 
             # There is also this reverse fronting, see Thompson 1965:94 ff.
-            elif nuc in ['iə', 'ɯə', 'uə', '', 'ɯ', 'ɤ', 'o', 'ɔ', 'ă', 'ɤ̆']:
+            elif nuc in ['iə', 'ɯə', 'uə', 'u', 'ɯ', 'ɤ', 'o', 'ɔ', 'ă', 'ɤ̆']:
                 if cod == 't':
                     cod = 'k'
                 if cod == 'n': cod = 'ŋ'
@@ -155,7 +158,7 @@ def trans(word, dialect, glottal, pham, cao, palatals):
         if dialect == 's':
             if cod in ['m', 'p']:
                 if nuc == 'iə': nuc = 'i'
-                if nuc == 'uə': nuc = ''
+                if nuc == 'uə': nuc = 'u'
                 if nuc == 'ɯə': nuc = 'ɯ'
 
         # Tones
@@ -191,42 +194,131 @@ def trans(word, dialect, glottal, pham, cao, palatals):
                     ton = '6b'
 
             # labialized allophony (added 17.09.08)
-            if nuc in ['', 'o', 'ɔ']:
+            labializing_vowels = ['u','o'] # Addressing a comment by Marc Brunelle, removed open o for southern - MM
+            if dialect != 's':
+                labializing_vowels += ['ɔ']
+            if nuc in labializing_vowels:
                 if cod == 'ŋ':
                     cod = 'ŋ͡m'
                 if cod == 'k':
                     cod = 'k͡p'
 
-        return (ons, nuc, cod, ton)
+        return (ons, nuc, ton, cod)
 
-def convert(word, args):
+def convert_dictionary(word, dialect, glottal, pham, cao, palatals,delimiter = ''):
     """Convert a single orthographic string to IPA."""
 
-    parts = trans(word, args.dialect, args.glottal, args.pham, args.cao, args.palatals)
+    parts = list(trans(word, dialect, glottal, pham, cao, palatals))
     if parts is None or None in parts:
-        seq = '['+word+']'
+        return None
+    if any(isinstance(x, list) for x in parts):
+        for i,p in enumerate(parts):
+            if not isinstance(p, list):
+                parts[i] = [p]
+        seqs = []
+        for p in itertools.product(*parts):
+            ons, nuc, ton, cod = p
+            transcription = delimiter.join([ons, '_'.join([nuc, ton]), cod])
+            seqs.append(transcription.strip())
     else:
-        print(parts)
-        seq = ''.join(parts)
+        ons, nuc, ton, cod = parts
+        transcription = delimiter.join([ons, '_'.join([nuc, ton]), cod])
+        seqs = [transcription.strip()]
 
-    return seq
+    return seqs
 
-def process_word(word, args):
-    print(word)
+def process_word_dictionary(word, dialect, glottal, pham, cao, palatals, delimiter = ''):
     word = word.strip(punctuation).lower()
     ## 29.03.16: check if tokenize is true
     ## if true, call this routine for each substring
     ## and re-concatenate
-    if (args.tokenize and '-' in word) or (args.tokenize and '_' in word):
+    if '-' in word or '_' in word:
         substrings = re.split(r'(_|-)', word)
         values = substrings[::2]
         delimiters = substrings[1::2] + ['']
-        ipa = [convert(x, args).strip() for x in values]
+
+        ipa = [convert_dictionary(x, dialect, glottal, pham, cao, palatals, delimiter) for x in values]
+        if None in ipa:
+            return None
+        seq = []
+        for p in itertools.product(*ipa):
+            seq.append(delimiter.join(p))
+    else:
+        seq = convert_dictionary(word, dialect, glottal, pham, cao, palatals, delimiter)
+        if 'v' in word:
+            print(word, seq)
+    return seq
+
+def convert(word, dialect, glottal, pham, cao, palatals,delimiter = ''):
+    """Convert a single orthographic string to IPA."""
+
+    parts = trans(word, dialect, glottal, pham, cao, palatals)
+    if parts is None or None in parts:
+        return ['['+word+']']
+    if any(isinstance(x, list) for x in parts):
+        for i,p in enumerate(parts):
+            if not isinstance(p, list):
+                parts[i] = [p]
+        seqs = []
+        for p in itertools.product(*parts):
+            seqs.append(delimiter.join(parts).strip())
+    else:
+        seqs = [delimiter.join(parts).strip()]
+
+    return seqs
+
+def process_word(word, dialect, glottal, pham, cao, palatals, tokenize, delimiter = ''):
+    word = word.strip(punctuation).lower()
+    ## 29.03.16: check if tokenize is true
+    ## if true, call this routine for each substring
+    ## and re-concatenate
+    if (tokenize and '-' in word) or (tokenize and '_' in word):
+        substrings = re.split(r'(_|-)', word)
+        values = substrings[::2]
+        delimiters = substrings[1::2] + ['']
+        ipa = [convert(x, dialect, glottal, pham, cao, palatals, delimiter) for x in values]
         seq = ''.join(v + d for v, d in zip(ipa, delimiters))
     else:
-        seq = convert(word, args).strip()
-    print(seq)
+        seq = convert(word, dialect, glottal, pham, cao, palatals, delimiter)
     return seq
+
+
+def process_textfile(path):
+    with open(path, 'r', encoding='utf-8') as fh:
+        text = []
+        for line in fh:
+            line = line.strip()
+            line = line.split()
+            line = [x for x in line if x not in ['', '_', '-']]
+            if line:
+                text.append(line)
+    return text
+
+def get_unique_words(text):
+    words = set()
+    for line in text:
+        words.update(line)
+    return sorted(words)
+
+def create_dictionary(text, dialect, glottal, pham, cao, palatals, tokenize):
+    words = get_unique_words(text)
+    dictionary = {}
+    for word in words:
+        phones = process_word_dictionary(word, dialect, glottal, pham, cao, palatals, ' ')
+        if phones is None:
+            continue
+        if word not in dictionary:
+            dictionary[word] = []
+        dictionary[word].extend(phones)
+    return dictionary
+
+def save_dictionary(dictionary, output_path):
+    with open(output_path, 'w', encoding='utf8') as f:
+        for k,v in sorted(dictionary.items()):
+            if 'v' in k:
+                print(k,v)
+            for phones in v:
+                f.write('{} {}\n'.format(k, phones))
 
 def main():
     #sys.path.append('./Rules')      # make sure we can find the Rules files
@@ -253,14 +345,7 @@ def main():
         sys.exit('Please enter a valid dialect.')
 
     if os.path.exists(args.text[0]):
-        with open(args.text[0], 'r', encoding = 'utf-8') as fh:
-            text = []
-            for line in fh:
-                line = line.strip()
-                line = line.split()
-                line = [x for x in line if x not in ['','_','-']]
-                if line:
-                    text.append(line)
+        text = process_textfile(args.text[0])
     else:
         if r'/' in args.text[0] or r'\\' in args.text[0]:
             sys.exit('Error: The file {} could not be found.'.format(args.text[0]))
@@ -269,9 +354,8 @@ def main():
     # Now, parse the input
     converted = []
     for line in text:
-        print(line)
         ortho = ' '.join(line)
-        phones = ' '.join(process_word(x, args) for x in line)
+        phones = ' '.join(process_word(x, args.dialect, args.glottal, args.pham, args.cao, args.palatals, args.tokenize) for x in line)
         converted.append(phones)
     if args.output_path:
         with open(args.output_path, 'w', encoding = 'utf8') as f:
