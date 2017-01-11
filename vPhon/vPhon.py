@@ -155,7 +155,7 @@ def trans(word, dialect, glottal, pham, cao, palatals):
                 if cod == 'n': cod = 'ŋ'
 
         # Monophthongization (Southern dialects: Thompson 1965: 86; Hoàng 1985: 181)
-        if dialect == 's':
+        if False and dialect == 's': # Disable monophthongization - MM
             if cod in ['m', 'p']:
                 if nuc == 'iə': nuc = 'i'
                 if nuc == 'uə': nuc = 'u'
@@ -203,7 +203,7 @@ def trans(word, dialect, glottal, pham, cao, palatals):
                 if cod == 'k':
                     cod = 'k͡p'
 
-        return (ons, nuc, ton, cod)
+        return [ons, nuc, ton, cod]
 
 def convert_dictionary(word, dialect, glottal, pham, cao, palatals,delimiter = ''):
     """Convert a single orthographic string to IPA."""
@@ -261,7 +261,7 @@ def convert(word, dialect, glottal, pham, cao, palatals,delimiter = ''):
                 parts[i] = [p]
         seqs = []
         for p in itertools.product(*parts):
-            seqs.append(delimiter.join(parts).strip())
+            seqs.append(delimiter.join(p).strip())
     else:
         seqs = [delimiter.join(parts).strip()]
 
@@ -279,7 +279,7 @@ def process_word(word, dialect, glottal, pham, cao, palatals, tokenize, delimite
         ipa = [convert(x, dialect, glottal, pham, cao, palatals, delimiter) for x in values]
         seq = ''.join(v + d for v, d in zip(ipa, delimiters))
     else:
-        seq = convert(word, dialect, glottal, pham, cao, palatals, delimiter)
+        seq = ''.join(convert(word, dialect, glottal, pham, cao, palatals, delimiter))
     return seq
 
 
