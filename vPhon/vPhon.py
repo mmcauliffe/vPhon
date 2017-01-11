@@ -39,9 +39,9 @@ def trans(word, dialect, glottal, pham, cao, palatals):
         from .Rules.south import onsets, nuclei, codas, tones, onglides, offglides, onoffglides, qu, gi
 
     if pham or cao:
-        if dialect == 'n': from .Rulesules.north import tones_p
-        if dialect == 'c': from .Rulesules.central import tones_p
-        if dialect == 's': from .Rulesules.south import tones_p
+        if dialect == 'n': from .Rules.north import tones_p
+        if dialect == 'c': from .Rules.central import tones_p
+        if dialect == 's': from .Rules.south import tones_p
         tones = tones_p
 
     ons = ''
