@@ -32,16 +32,16 @@ def trans(word, dialect, glottal, pham, cao, palatals):
 
     # This looks ugly, but newer versions of python complain about "from x import *" syntax
     if dialect == 'n':
-        from .rules.north import onsets, nuclei, codas, tones, onglides, offglides, onoffglides, qu, gi
+        from .Rules.north import onsets, nuclei, codas, tones, onglides, offglides, onoffglides, qu, gi
     elif dialect == 'c':
-        from .rules.central import onsets, nuclei, codas, tones, onglides, offglides, onoffglides, qu, gi
+        from .Rules.central import onsets, nuclei, codas, tones, onglides, offglides, onoffglides, qu, gi
     elif dialect == 's':
-        from .rules.south import onsets, nuclei, codas, tones, onglides, offglides, onoffglides, qu, gi
+        from .Rules.south import onsets, nuclei, codas, tones, onglides, offglides, onoffglides, qu, gi
 
     if pham or cao:
-        if dialect == 'n': from .rules.north import tones_p
-        if dialect == 'c': from .rules.central import tones_p
-        if dialect == 's': from .rules.south import tones_p
+        if dialect == 'n': from .Rulesules.north import tones_p
+        if dialect == 'c': from .Rulesules.central import tones_p
+        if dialect == 's': from .Rulesules.south import tones_p
         tones = tones_p
 
     ons = ''
