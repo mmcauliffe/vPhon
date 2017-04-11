@@ -154,12 +154,18 @@ def trans(word, dialect, glottal, pham, cao, palatals):
                     cod = 'k'
                 if cod == 'n': cod = 'ŋ'
 
-        # Monophthongization (Southern dialects: Thompson 1965: 86; Hoàng 1985: 181)
-        if False and dialect == 's': # Disable monophthongization - MM
-            if cod in ['m', 'p']:
-                if nuc == 'iə': nuc = 'i'
-                if nuc == 'uə': nuc = 'u'
-                if nuc == 'ɯə': nuc = 'ɯ'
+        # Monophthongization (Southern dialects: Thompson 1965: 86; Hoàng 1985: 181; MB - More than just labials)
+        if dialect == 's':
+            if cod in ['m', 'p', 'n', 't', 'ŋ', 'k', 'j', 'w']:
+                if nuc == 'iə': nuc = 'iː'
+                if nuc == 'uə': nuc = 'uː'
+                if nuc == 'ɯə': nuc = 'ɯː'
+
+        # Front vowel centralization before coronals - MB
+        if dialect == 's':
+            if cod in ['n', 't']:
+                if nuc == 'i': nuc = 'ɯ'
+                if nuc == 'e': nuc = 'ɤ'
 
         # Tones
         # Modified 20 Sep 2008 to fix aberrant 33 error
